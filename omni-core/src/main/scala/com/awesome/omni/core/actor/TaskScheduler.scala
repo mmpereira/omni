@@ -18,7 +18,7 @@ import com.awesome.omni.core.task.TaskExecutionListener
 import org.quartz.TriggerKey
 import org.quartz.JobDataMap
 
-case class ScheduleMsg(task: String)
+case class ScheduleMsg(task: String, timer: (Int, Int))
 case class UnscheduleMsg(id: String)
 
 class TaskScheduler(val master: ActorRef) extends Actor {
@@ -36,22 +36,23 @@ class TaskScheduler(val master: ActorRef) extends Actor {
   
   
   def receive: Actor.Receive = {
-    case ScheduleMsg(task) => schedule(task)
+    case ScheduleMsg(task, timer) => schedule(task, timer)
 
     case UnscheduleMsg(id) => unschedule(id)
   }
 
-  def schedule(task: String) = {
+  def schedule(task: String, timer: (Int, Int)) = {
     val id = UUID.randomUUID()
     
     val jobDataMap = new JobDataMap
     jobDataMap.put("master", master)
+    jobDataMap.put("task", task)
     
-    val jobDetailBuilder = JobBuilder.newJob(classOf[TaskTrigger]).withIdentity("job-" + id)
+    val jobDetailBuilder = JobBuilder.newJob(classOf[TaskTrigger]).withIdentity("job-" + id).setJobData(jobDataMap)
     val jobDetail = jobDetailBuilder.build()
     
     val triggerBuilder = TriggerBuilder.newTrigger().withIdentity(TRIGGER_PREFFIX + id).startNow()
-    triggerBuilder.withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(17, 52))
+    triggerBuilder.withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(timer._1, timer._2))
     
     
     val trigger = triggerBuilder.build()

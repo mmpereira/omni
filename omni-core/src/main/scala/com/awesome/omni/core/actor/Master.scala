@@ -25,6 +25,8 @@ class Master(val reporter: ActorRef) extends Actor {
     case TaskMsg(name) => {
       val t:Task = TaskFactory(name)
       
+      println(s"task name: $name")
+      
       val executor = context.actorOf(TaskExecutor.props(reporter), "task")
       
       executor ! ExecuteTask(t)
